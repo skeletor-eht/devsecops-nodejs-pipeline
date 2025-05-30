@@ -33,6 +33,11 @@ jobs:
         config: p/javascript
         generateSarif: true # This is the input to ensure SARIF output
 
+# --- NEW DEBUG STEP ---
+    - name: Debug - Print Semgrep SARIF Path Output
+      run: echo "Semgrep SARIF Path: ${{ steps.semgrep_scan.outputs.sarifFilePath }}"
+
+
     - name: Fail build if Semgrep found critical issues (Security Gate)
       run: |
         echo "Semgrep scan completed. Review results in the 'semgrep_scan' step summary and downloaded artifacts."
@@ -53,9 +58,10 @@ jobs:
       run: |
         trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table --vuln-type library .
 
+ # --- Artifact Upload (Now it should work if semgrep.sarif exists!) ---
     - name: Upload Semgrep SARIF Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: semgrep-sarif-results 
-        path: ./semgrep.sarif      
+        name: semgrep-sarif-results # 4 spaces from `with:`
+        path: ./semgrep.sarif      # 4 spaces from `with:`
