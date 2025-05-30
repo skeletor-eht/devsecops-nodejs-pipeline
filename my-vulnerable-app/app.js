@@ -1,48 +1,44 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose(); // Not actually setting up a DB, just for demo
+const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const port = 3000;
 
-// Hardcoded secret (for SAST demo)
+
 const SECRET_API_KEY = "my_super_secret_dev_key_123";
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public')); // Serve static files from 'public' directory
+app.use(express.static('public')); 
 
-// In-memory "database" for user data (to simulate IDOR)
+
 const users = {
     "1": { id: "1", name: "Alice", email: "alice@example.com", isAdmin: true },
     "2": { id: "2", name: "Bob", email: "bob@example.com", isAdmin: false },
     "3": { id: "3", name: "Charlie", email: "charlie@example.com", isAdmin: false }
 };
 
-// Route for SQL Injection vulnerability
 app.get('/search', (req, res) => {
-    const query = req.query.q; // User input directly
+    const query = req.query.q;
     if (!query) {
         return res.send('Please provide a search query (e.g., /search?q=test)');
     }
-    // Simulate a vulnerable SQL query (NEVER DO THIS IN REAL CODE!)
     const simulatedSql = `SELECT * FROM products WHERE name LIKE '%${query}%';`;
     console.log("Simulated SQL Query:", simulatedSql);
     res.send(`Searching for: ${query}. (Simulated query executed: ${simulatedSql})`);
 });
 
-// Route for Cross-Site Scripting (XSS) vulnerability
 app.get('/comment', (req, res) => {
-    const userComment = req.query.text; // User input directly
+    const userComment = req.query.text; 
     if (!userComment) {
         return res.send('Please provide a comment (e.g., /comment?text=hello)');
     }
-    // Reflecting user input without proper sanitization (NEVER DO THIS!)
+
     res.send(`<h1>Your Comment:</h1><p>${userComment}</p><p>This comment was processed.</p>`);
 });
 
-// Route for Insecure Direct Object Reference (IDOR) vulnerability
+
 app.get('/user/:id', (req, res) => {
     const userId = req.params.id;
-    // No authorization check here! Any user can view any other user's data
     const user = users[userId];
     if (user) {
         res.json(user);
@@ -51,7 +47,6 @@ app.get('/user/:id', (req, res) => {
     }
 });
 
-// Basic home page
 app.get('/', (req, res) => {
     res.send(`
         <h1>Vulnerable Node.js App</h1>
