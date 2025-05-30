@@ -23,26 +23,30 @@ jobs:
         node-version: '16'
 
     - name: Install dependencies
-      run: npm install # This should now pass consistently!
+      run: npm install
 
     # --- SAST Scan (Semgrep) ---
-    - name: Run Semgrep SAST Scan
-      id: semgrep_scan
-      uses: returntocorp/semgrep-action@v2
-      with:
-        config: p/javascript
-        generateSarif: true # This is the input to ensure SARIF output
+    # Install Semgrep CLI directly to control its output
+    - name: Install Semgrep CLI
+      run: |
+        python3 -m pip install semgrep
+        # Verify installation
+        semgrep --version
 
-# --- NEW DEBUG STEP ---
-    - name: Debug - Print Semgrep SARIF Path Output
-      run: echo "Semgrep SARIF Path: ${{ steps.semgrep_scan.outputs.sarifFilePath }}"
-
+    # Run Semgrep CLI and explicitly output SARIF to a file
+    - name: Run Semgrep SAST Scan (Direct CLI)
+      # We ensure this command explicitly creates semgrep.sarif
+      run: |
+        semgrep --config=p/javascript --sarif --output semgrep.sarif .
+      # The '.' at the end tells Semgrep to scan the current directory.
+      # If the step fails, `semgrep` exits with a non-zero code, failing the job.
 
     - name: Fail build if Semgrep found critical issues (Security Gate)
+      # This step primarily confirms completion, as direct semgrep CLI exit code handles failure.
       run: |
-        echo "Semgrep scan completed. Review results in the 'semgrep_scan' step summary and downloaded artifacts."
+        echo "Semgrep scan completed. Review results in the downloaded artifacts."
 
-    # --- DEBUG STEP: List files in the working directory ---
+    # --- DEBUG STEP: List files in the working directory (Crucial for verification) ---
     - name: Debug - List files in current directory
       run: ls -la
 
@@ -58,10 +62,11 @@ jobs:
       run: |
         trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table --vuln-type library .
 
- # --- Artifact Upload (Now it should work if semgrep.sarif exists!) ---
+    # --- Artifact Upload ---
     - name: Upload Semgrep SARIF Results
-      if: always()
+      if: always() # Always run this step even if previous steps fail
       uses: actions/upload-artifact@v4
       with:
-        name: semgrep-sarif-results # 4 spaces from `with:`
-        path: ./semgrep.sarif      # 4 spaces from `with:`
+        name: semgrep-sarif-results
+        # This path now points to the file we explicitly created with the direct CLI command
+        path: ./semgrep.sarif
