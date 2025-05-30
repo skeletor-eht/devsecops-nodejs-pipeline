@@ -20,27 +20,26 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '16' # Match the Dockerfile or your preference
+        node-version: '16'
 
     - name: Install dependencies
-      run: npm install # This should now pass since you fixed package.json comments!
+      run: npm install # This should now pass consistently!
 
     # --- SAST Scan (Semgrep) ---
     - name: Run Semgrep SAST Scan
-      id: semgrep_scan # Keep the ID for potential future reference, though we won't directly use its output path here
-      uses: returntocorp/semgrep-action@v2 # Keep v2 unless you had issues specifically with it.
+      id: semgrep_scan
+      uses: returntocorp/semgrep-action@v2
       with:
-        config: p/javascript # Or `auto` for broader detection
-        # IMPORTANT: Use generateSarif: true to get a SARIF file
-        generateSarif: true
-        # The Semgrep action will place the SARIF file named `semgrep.sarif`
-        # in the current working directory (my-vulnerable-app/).
+        config: p/javascript
+        generateSarif: true # This is the input to ensure SARIF output
 
     - name: Fail build if Semgrep found critical issues (Security Gate)
-      # The `semgrep-action` by default will fail the job if it finds critical issues based on its rules.
-      # This step serves more as a confirmation/placeholder for explicit gating logic if needed.
       run: |
         echo "Semgrep scan completed. Review results in the 'semgrep_scan' step summary and downloaded artifacts."
+
+    # --- DEBUG STEP: List files in the working directory ---
+    - name: Debug - List files in current directory
+      run: ls -la
 
     # --- SCA & Container Scanning (Trivy) ---
     - name: Build Docker image
@@ -48,19 +47,16 @@ jobs:
 
     - name: Run Trivy Container Image Scan (Vulnerabilities)
       run: |
-        # --exit-code 1 makes the job fail if HIGH/CRITICAL issues are found. This is your security gate.
         trivy image --exit-code 1 --severity HIGH,CRITICAL --format table my-vulnerable-app:latest
 
     - name: Run Trivy FS (Filesystem) Scan for Dependencies (SCA)
       run: |
-        # Scans the local filesystem where node_modules are installed.
-        # --exit-code 1 makes the job fail if HIGH/CRITICAL issues are found.
         trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table --vuln-type library .
 
-    # --- Artifact Upload (Now it should work!) ---
+    # --- Artifact Upload (Now it should work if semgrep.sarif exists!) ---
     - name: Upload Semgrep SARIF Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-sarif-results
-        path: ./semgrep.sarif
+        path: ./semgrep.sarif # This path assumes semgrep.sarif is created here
