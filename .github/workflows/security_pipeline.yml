@@ -28,7 +28,7 @@ jobs:
     # --- SAST Scan (Semgrep) ---
     - name: Run Semgrep SAST Scan
       id: semgrep_scan
-      uses: returntocorp/semgrep-action@v2
+      uses: returntocorp/semgrep-action@v
       with:
         config: p/javascript
         # Additional configs you can use (uncomment as needed):
@@ -39,8 +39,6 @@ jobs:
         #   p/security-audit
         #   p/owasp-top-10
         #   auto
-        # publishToken: ${{ secrets.5a10e5790fd5c855c2c249d96ff64f4e793cabfa5f2b81973e03d6e570ebfb92 }} # For Semgrep App/Cloud
-        # publishUrl: https://semgrep.dev # For Semgrep App/Cloud
         # generateSarif: true # For SARIF output
 
     - name: Fail build if Semgrep found critical issues (Security Gate)
