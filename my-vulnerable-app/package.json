@@ -12,6 +12,6 @@
   "dependencies": {
     "express": "4.16.2",
     "body-parser": "^1.18.3",
-    "sqlite3": "^4.0.0"  // For SQLi demo, though we won't set up a real DB
+    "sqlite3": "^4.0.0" 
   }
 }
