@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./my-vulnerable-app
+        working-directory: ./my-vulnerable-app # All commands will run from here unless specified
 
     steps:
     - name: Checkout code
@@ -25,36 +25,36 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    # --- Test File Creation and Upload (Debugging artifact action) ---
+    # --- TEST FILE CREATION AND UPLOAD (CRITICAL DEBUGGING STEP) ---
+    # This step will confirm if artifact upload works at all in your environment.
     - name: Create Test File
-      run: echo "This is a test file to confirm artifact upload." > test_file.txt
+      run: echo "This is a test file to confirm artifact upload works." > test_file_for_upload_check.txt
 
     - name: Upload Test File
       uses: actions/upload-artifact@v4
       with:
-        name: test-artifact
-        path: ./test_file.txt # This should absolutely work if the directory is writable
+        name: test-artifact-check
+        path: ./test_file_for_upload_check.txt # This MUST succeed if the directory is writable and the action works.
 
-    # --- SAST Scan (Semgrep) ---
+    # --- SAST Scan (Semgrep) - USING DIRECT CLI ---
+    # This is the section that HAS to be active, not the 'returntocorp/semgrep-action' wrapper.
     - name: Install Semgrep CLI
       run: |
         python3 -m pip install semgrep
-        semgrep --version
+        semgrep --version # Verify installation
 
     - name: Run Semgrep SAST Scan (Direct CLI)
+      # This command explicitly creates semgrep.sarif in the current working directory.
       run: |
-        # Ensure the directory exists (it should, but just in case)
-        mkdir -p .
-        # This command should create semgrep.sarif
         semgrep --config=p/javascript --sarif --output semgrep.sarif .
-      # Add a check here - if Semgrep fails, it won't create the file.
-      # Check the logs of this step carefully for any errors.
+      # The '.' scans the current directory.
+      # This step will fail the job if Semgrep finds HIGH/CRITICAL issues.
 
-    - name: Fail build if Semgrep found critical issues (Security Gate)
+    - name: Fail build if Semgrep found critical issues (Security Gate Confirmation)
       run: |
-        echo "Semgrep scan completed. Review results in the downloaded artifacts."
+        echo "Semgrep scan completed. Review results in the downloaded artifacts if available."
 
-    # --- DEBUG STEP: List files in the working directory (CRITICAL FOR YOUR RESPONSE) ---
+    # --- DEBUG STEP: List files in the working directory (ABSOLUTELY CRITICAL OUTPUT) ---
     - name: Debug - List files in current directory
       run: ls -la
 
@@ -70,10 +70,10 @@ jobs:
       run: |
         trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table --vuln-type library .
 
-    # --- Artifact Upload ---
+    # --- Artifact Upload for Semgrep Results ---
     - name: Upload Semgrep SARIF Results
-      if: always()
+      if: always() # Always run this step even if previous steps fail
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-sarif-results
-        path: ./semgrep.sarif
+        path: ./semgrep.sarif # This path points to the file explicitly created by the direct CLI command
