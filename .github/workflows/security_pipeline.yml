@@ -28,7 +28,7 @@ jobs:
     # --- SAST Scan (Semgrep) ---
     - name: Run Semgrep SAST Scan
       id: semgrep_scan
-      uses: returntocorp/semgrep-action@v
+      uses: returntocorp/semgrep-action@v1
       with:
         config: p/javascript
         # Additional configs you can use (uncomment as needed):
