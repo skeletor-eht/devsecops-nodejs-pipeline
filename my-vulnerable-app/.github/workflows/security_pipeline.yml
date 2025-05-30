@@ -53,10 +53,9 @@ jobs:
       run: |
         trivy fs --exit-code 1 --severity HIGH,CRITICAL --format table --vuln-type library .
 
-    # --- Artifact Upload (Now it should work if semgrep.sarif exists!) ---
     - name: Upload Semgrep SARIF Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: semgrep-sarif-results
-        path: ./semgrep.sarif # This path assumes semgrep.sarif is created here
+        name: semgrep-sarif-results 
+        path: ./semgrep.sarif      
