@@ -59,10 +59,8 @@ jobs:
 
     # --- Artifact Upload (Now it should work!) ---
     - name: Upload Semgrep SARIF Results
-      if: always() # Always run this step even if previous steps fail
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-sarif-results
-        # Point directly to the file Semgrep action should have generated
-        # in the working directory (my-vulnerable-app/)
         path: ./semgrep.sarif
