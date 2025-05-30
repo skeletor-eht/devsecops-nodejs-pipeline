@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./my-vulnerable-app # All commands will run from here unless specified
+        working-directory: ./my-vulnerable-app
 
     steps:
     - name: Checkout code
@@ -25,28 +25,36 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    # --- Test File Creation and Upload (Debugging artifact action) ---
+    - name: Create Test File
+      run: echo "This is a test file to confirm artifact upload." > test_file.txt
+
+    - name: Upload Test File
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifact
+        path: ./test_file.txt # This should absolutely work if the directory is writable
+
     # --- SAST Scan (Semgrep) ---
-    # Install Semgrep CLI directly to control its output
     - name: Install Semgrep CLI
       run: |
         python3 -m pip install semgrep
-        # Verify installation
         semgrep --version
 
-    # Run Semgrep CLI and explicitly output SARIF to a file
     - name: Run Semgrep SAST Scan (Direct CLI)
-      # We ensure this command explicitly creates semgrep.sarif
       run: |
+        # Ensure the directory exists (it should, but just in case)
+        mkdir -p .
+        # This command should create semgrep.sarif
         semgrep --config=p/javascript --sarif --output semgrep.sarif .
-      # The '.' at the end tells Semgrep to scan the current directory.
-      # If the step fails, `semgrep` exits with a non-zero code, failing the job.
+      # Add a check here - if Semgrep fails, it won't create the file.
+      # Check the logs of this step carefully for any errors.
 
     - name: Fail build if Semgrep found critical issues (Security Gate)
-      # This step primarily confirms completion, as direct semgrep CLI exit code handles failure.
       run: |
         echo "Semgrep scan completed. Review results in the downloaded artifacts."
 
-    # --- DEBUG STEP: List files in the working directory (Crucial for verification) ---
+    # --- DEBUG STEP: List files in the working directory (CRITICAL FOR YOUR RESPONSE) ---
     - name: Debug - List files in current directory
       run: ls -la
 
@@ -64,9 +72,8 @@ jobs:
 
     # --- Artifact Upload ---
     - name: Upload Semgrep SARIF Results
-      if: always() # Always run this step even if previous steps fail
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-sarif-results
-        # This path now points to the file we explicitly created with the direct CLI command
         path: ./semgrep.sarif
